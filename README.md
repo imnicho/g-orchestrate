@@ -24,7 +24,7 @@ The skill encodes the heuristics so you don't have to re-derive them on every ta
 
 ## Install
 
-Requires [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) and the Gemini CLI.
+Requires [Claude Code](https://docs.claude.com/en/docs/claude-code/overview), Node.js 20+, and the Gemini CLI.
 
 ### 1. Install the Gemini CLI
 
@@ -59,6 +59,24 @@ Restart Claude Code (or `/skills` to refresh) and `/g-orchestrate` should appear
 ```
 
 Claude will triage the task, fan out across Gemini and/or its own agents, and synthesize. The first dispatch in each session verifies Gemini auth and tells you to log in if you haven't.
+
+### 4. Smoke test
+
+Confirm everything is wired up:
+
+```
+/g-orchestrate list the top-level files in this repository and write a one-sentence purpose for each
+```
+
+This is small enough that Claude should triage it to Gemini flash and fan out a single one-shot. If you see Gemini get dispatched and a result land in `.orchestrate/`, install + auth + skill discovery are all good.
+
+## Troubleshooting
+
+- **`/g-orchestrate` doesn't appear after install** — run `/skills` to refresh the skills list, or restart Claude Code. Confirm `~/.claude/skills/g-orchestrate/SKILL.md` exists and starts with the `---` frontmatter block.
+- **`Please set an Auth method...`** — run `gemini` once interactively to log in with your Google account. Free tier uses `GOOGLE_GENAI_USE_GCA`. Don't set `GEMINI_API_KEY` unless you want to use the paid path (it overrides free-tier login).
+- **`429 RESOURCE_EXHAUSTED` / quota errors** — Gemini free tier has per-minute and per-day limits. Stagger bursty fan-out, drop from `gemini-2.5-pro` to `gemini-2.5-flash` for less critical legs, or escalate the affected task to Claude. The skill's "escalate, don't stack" rule applies here.
+- **Gemini's output is wrong / shallow** — first attempt is diagnostic. Sharpen the brief, escalate flash → pro, then escalate engine pro → Claude. Don't run it three times unchanged hoping for a better roll.
+- **Agent teams don't work / no panes appear** — agent teams are experimental in Claude Code. Set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in your shell and add `"teammateMode": "tmux"` to your Claude Code settings. Without those, the skill's "agent team" path won't fire — fall back to subagents or the tmux flow.
 
 ## Caveats
 

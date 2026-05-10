@@ -28,7 +28,7 @@ Before picking a mechanism, classify each agent task by effort. The goal is to s
 
 - If you'd be embarrassed by a confidently-wrong answer, don't use Gemini.
 - If the task fits in a single prompt with a single concrete deliverable, Gemini is probably fine.
-- If the task needs to use Claude Code's specialized subagents (e.g. `nexus-db-reviewer`, `wastebin-crypto-reviewer`), it stays on Claude — Gemini can't invoke them.
+- If the task needs to use any of *this project's* specialized Claude Code subagents (the ones registered in `~/.claude/agents/` or the project's `.claude/agents/`), it stays on Claude — Gemini can't invoke them.
 - If the task needs `git`, `npm test`, `cargo build`, etc. as part of the loop, Gemini can do that with `--yolo` in a worktree, but only delegate it there if the task is independent.
 - When in doubt, start cheap (flash → pro → Claude). Re-dispatch on Claude if Gemini's output is weak.
 
@@ -48,7 +48,7 @@ Same table as `/orchestrate`:
 
 1. **Trivial / moderate effort?** → **Gemini CLI** (Step 1G). Default for the long tail of small tasks.
 2. **Hard effort, single fan-out wave?** → Claude `Agent` tool. Parallelize independent calls.
-3. **Hard effort, agents need to talk to each other?** → Claude **agent team** (`TeamCreate` etc., load schemas via `ToolSearch query="select:TeamCreate,SendMessage,TaskCreate,TaskUpdate,TaskList,TaskGet"`).
+3. **Hard effort, agents need to talk to each other?** → Claude **agent team** (`TeamCreate` etc., load schemas via `ToolSearch query="select:TeamCreate,SendMessage,TaskCreate,TaskUpdate,TaskList,TaskGet"`). Note: agent teams are an experimental feature — set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in your shell, and add `"teammateMode": "tmux"` to your Claude Code settings if you want teammates to render as tmux panes. Without those, this path won't work and you should fall back to subagents or the tmux flow.
 4. **Hard effort + process control / dev servers / interactive TUIs?** → **tmux flow** (Steps 2–6 of `/orchestrate`).
 
 You can mix Gemini and Claude in one orchestration — e.g. dispatch four Gemini scouts in parallel, synthesize with one Claude `Agent`, kick off a Claude team for the hard architectural call. Don't mix Claude teams with tmux orchestrations in the same session (the team owns the pane layout).
@@ -143,7 +143,7 @@ Run with `run_in_background: true` so you can keep working. When the background 
 2. `git -C "$WT" log --oneline` and `git -C "$WT" diff <base>..HEAD` — review changes
 3. Decide: merge / cherry-pick / discard, then `git worktree remove "$WT"` and `git branch -D "$BRANCH"`
 
-This mirrors `/codex` exactly — same safety story (sandboxed to a worktree, never touching your live tree, results captured to a file before cleanup).
+Safety story: sandboxed to a worktree (filesystem isolation), never touching your live tree, results captured to a file before cleanup. This is the same shape as the OpenAI Codex CLI delegation pattern — if you've used `codex exec -C <worktree> --full-auto`, this is the Gemini equivalent.
 
 ### Steering Gemini
 
@@ -184,7 +184,7 @@ This makes cost and reliability legible at a glance.
 ## Cost & Quota Hygiene
 
 - Gemini free tier has daily quota limits. Burst-firing 30 flash calls in a minute may rate-limit. Stagger if needed.
-- Free tier sends data to Google for model training unless you opt out / use a paid key. If the project handles secrets or sensitive code, do **not** route through Gemini — keep it on Claude. Default to Claude for: anything in `infra/`, anything touching credentials, anything in security-reviewer territory.
+- Free tier sends data to Google for model training unless you opt out (Settings → Privacy in the Gemini CLI) or use a paid `GEMINI_API_KEY`. If the project handles secrets or sensitive code, do **not** route through Gemini — keep it on Claude. Default to Claude for: anything in infrastructure / deployment configs, anything touching credentials or auth, anything in security-review territory.
 - Don't pipe full file contents into Gemini prompts when `--include-directories <path>` will let it read them itself — saves tokens and keeps the prompt small.
 
 ## Anti-patterns
