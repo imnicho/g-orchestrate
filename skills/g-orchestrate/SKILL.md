@@ -116,7 +116,7 @@ Run multiple Gemini calls in parallel by issuing them as separate Bash calls in 
 Best for: mechanical refactors, adding tests for an existing spec, doc generation that touches several files, anything where Gemini needs to run `npm test` / `cargo check` in a loop.
 
 ```bash
-# Create an isolated worktree (same pattern as /codex)
+# Create an isolated git worktree so Gemini can edit + commit without touching your live tree
 SLUG="<short-task-slug>"
 BRANCH="gemini/$SLUG"
 WT=".claude/worktrees/$BRANCH"
